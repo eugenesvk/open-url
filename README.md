@@ -207,7 +207,7 @@ To fix this, install some version `3.8.X` with `pyenv`, then run `ln -s ~/.pyenv
 
 ## Finally
 
-See also: [Google Spell Check](https://github.com/noahcoad/google-spell-check).
+See also: Noah's other [Sublime Text packages](https://gist.github.com/noahcoad/712ba4e38467f5126eb8cedd9ecbc842)
 
 Credits: Thanks goes to peterc for starting [a forum thread](http://www.sublimetext.com/forum/viewtopic.php?f=2&t=4243) about this topic and KatsuomiK for [his gist](https://gist.github.com/3542836), which were the inspiration for this plugin.
 

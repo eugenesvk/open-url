@@ -1,9 +1,4 @@
 [
-  {
-    "button": "button1",
-    "count": 2,
-    "modifiers": ["alt"],
-    "press_command": "drag_select",
-    "command": "open_url"
-  }
+{"button":"button1","count":2,"modifiers":["alt"],"press_command":"drag_select","command":"open_url","context":[{
+  "key":"setting.open_url.enable_default_key_bindings","operator":"equal","operand":true}] }
 ]

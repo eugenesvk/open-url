@@ -51,7 +51,7 @@
 
   "file_prefixes": [],
 
-  "file_suffixes": [".js"],
+  "file_suffixes": [], //in some cases ".js" can add seconds of delay to opening an URL with incomplete cutoffs like //example.com
 
   // Enable file path handling
   "enable_file_commands": true,

@@ -132,6 +132,9 @@ def merge_settings(window, keys: list[str]) -> Settings:
     except Exception:
         return settings
 
+from time import monotonic_ns as ttime
+from math import pow
+ns = pow(10,9) # nanosecond, which 'monotonic_ns' are measured in
 
 class OpenUrlCommand(sublime_plugin.TextCommand):
     config: Settings
@@ -155,17 +158,25 @@ class OpenUrlCommand(sublime_plugin.TextCommand):
 
         # Sublime Text has its own open_url command used for things like Help > Documentation
         # so if a url is passed, open it instead of getting text from the view
+        T = [ttime()]
         if url is not None:
             urls = [url]
+            T+=[ttime()]
         else:
             urls = [self.get_selection(region) for region in self.view.sel()]
+            T+=[ttime()]
+        # D=T[-1]-T[-2];print("⏰∑{:.5f}s".format(D/ns),f"get_sel; urls={urls}")
         if len(urls) > 1:
             show_menu = False
         for url in urls:
             self.handle(url, show_menu)
+            T+=[ttime()];D=T[-1]-T[-2];print("⏰∑{:.5f}s".format(D/ns),f"handle url={url}")
 
     def handle(self, url: str, show_menu: bool) -> None:
+        T = [ttime()]
         url = resolve_aliases(url, self.config["aliases"])
+        T+=[ttime()];D=T[-1]-T[-2];print("⏰∑{:.5f}s".format(D/ns),f"alias; url={url}")
+
         urls = generate_urls(
             url,
             self.config["search_paths"],
@@ -173,31 +184,44 @@ class OpenUrlCommand(sublime_plugin.TextCommand):
             self.config["file_suffixes"],
             self.config["trailing_delimiters"],
         )
+        # T+=[ttime()];D=T[-1]-T[-2];print("⏰∑{:.5f}s".format(D/ns),f"gener; url={url}")
 
         for u in urls:
+            # if url is not None:
+            #     urls = [url]
+            #     t1 = ttime()
             path = self.abs_path(u)
+            # T+=[ttime()];D=T[-1]-T[-2]; print("⏰∑{:.5f}s".format(D/ns),f"abs_path u={u}")
 
             if os.path.isfile(path):
                 self.file_action(path, show_menu, u)
                 return
+            # T+=[ttime()];D=T[-1]-T[-2]; print("⏰∑{:.5f}s".format(D/ns),f"is_file u={u}")
 
             if self.view.file_name() and not u:
                 # open current file if url is empty
                 self.file_action(self.view.file_name(), show_menu, self.view.file_name())
+                T+=[ttime()];D=T[-1]-T[-2]; print("⏰∑{:.5f}s".format(D/ns),f"file_action u={u}")
                 return
 
             if os.path.isdir(path):
                 self.folder_action(path, show_menu, u)
+                T+=[ttime()];D=T[-1]-T[-2]; print("⏰∑{:.5f}s".format(D/ns),f"dir={path}")
                 return
+            T+=[ttime()];D=T[-1]-T[-2]; print("⏰∑{:.5f}s".format(D/ns),f"end u={u}")
 
         clean_path = remove_trailing_delimiters(url, self.config["trailing_delimiters"])
+        T += [ttime()]; D=T[-1]-T[-2]; print("⏰∑{:.5f}s clean_path".format(D/ns), f"clean_path={clean_path}") # ⏲
         if is_url(clean_path) or clean_path.startswith("http://") or clean_path.startswith("https://"):
             self.open_tab(prepend_scheme(clean_path))
+            T += [ttime()]; D=T[-1]-T[-2]
+            print("⏰∑{:.5f}s open_tab".format(D/ns), f"pre_clean={prepend_scheme(clean_path)}") # ⏲
             return
 
         openers = match_openers(self.config["other_custom_commands"], clean_path)
         if openers:
             self.other_action(clean_path, openers, show_menu)
+            T+=[ttime()];D=T[-1]-T[-2];print("⏰∑{:.5f}s".format(D/ns),f"open={openers}")
             return
 
         self.modify_or_search_action(url)
@@ -314,17 +338,21 @@ class OpenUrlCommand(sublime_plugin.TextCommand):
         browser_path = self.config["web_browser_path"]
 
         def ot(url, browser, browser_path):
+            T = [ttime()]
             if browser_path:
                 if not webbrowser.get(browser_path).open(url):
                     sublime.error_message(f'Could not open tab using your "web_browser_path" setting: {browser_path}')
+                T+=[ttime()];D=T[-1]-T[-2]; print("⏰∑{:.5f}s no browse".format(D/ns), f"p={browser_path}")
                 return
             try:
                 controller = webbrowser.get(browser or None)
+                T+=[ttime()];D=T[-1]-T[-2]; print("⏰∑{:.5f}s".format(D/ns),f"controller={controller}")
             except Exception:
                 e = 'Python couldn\'t find the "{}" browser. Change "web_browser" in Open URL\'s settings.'
                 sublime.error_message(e.format(browser or "default"))
                 return
             controller.open_new_tab(url)
+            T+=[ttime()];D=T[-1]-T[-2]; print("⏰∑{:.5f}s".format(D/ns),f"opening {url}")
 
         threading.Thread(target=ot, args=(url, browser, browser_path)).start()
 

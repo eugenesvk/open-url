@@ -362,7 +362,7 @@ class OpenUrlCommand(sublime_plugin.TextCommand):
 
         opts, searchers = [], []
         if is_edit:
-            opts += [f"modify path {term}"]
+            opts += [f"path✎ {term}"]
         if is_web:
             searchers = self.config["web_searchers"]
             opts += [f'{s["label"]} ({term})' for s in searchers]

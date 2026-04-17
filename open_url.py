@@ -188,6 +188,7 @@ class OpenUrlCommand(sublime_plugin.TextCommand):
         show_input: bool = False,
         mouse_only: bool = False,
         batch_command: bool | None = None,
+        sel_instead: bool = False,
     ) -> None:
         self.config = merge_settings(self.view.window(), settings_keys)
 
@@ -205,13 +206,14 @@ class OpenUrlCommand(sublime_plugin.TextCommand):
             urls = [url]
         else:
             if event and mouse_only:
-                urls = [self.get_mouse_url(event)]
+                urls = [self.get_mouse_url(event, sel_instead)]
             else:
-                urls  = [self.get_selection(reg) for reg in self.view.sel()]
+                urls  = [self.get_selection(reg, sel_instead) for reg in self.view.sel()]
                 if event:
-                    url = self.get_mouse_url(event)
+                    url = self.get_mouse_url(event, sel_instead)
                     if not url in urls:
                         urls += [url]
+        if sel_instead: return
         batch_command = self.config["batch_command"] if batch_command is None else batch_command
         if len(urls) > 1 and batch_command:
             show_menu = True
@@ -223,7 +225,7 @@ class OpenUrlCommand(sublime_plugin.TextCommand):
             if _L: print(f"url: {url}")
             self.handle(url, show_menu)
 
-    def get_mouse_url(self, event) -> str:
+    def get_mouse_url(self, event, sel_instead = False) -> str:
         view = self.view
 
         x = event['x']; y = event['y']; pos_win = (x,y)
@@ -282,8 +284,8 @@ class OpenUrlCommand(sublime_plugin.TextCommand):
         if min_sel > 0: # Find selection that includes the mouse clicked point
             for reg in self.view.sel():
                 if reg.contains(pt_m) and reg.size() > min_sel:
-                    return self.get_selection(reg)
-        return self.get_selection(sublime.Region(pt_m, pt_m)) # no reg found or needed, use click Pt
+                    return self.get_selection(reg, sel_instead)
+        return self.get_selection(sublime.Region(pt_m, pt_m), sel_instead) # no reg found or needed, use click Pt
 
     def handle_batch(self, urls: list[str], show_menu: bool) -> None:
         view = self.view
@@ -372,16 +374,23 @@ class OpenUrlCommand(sublime_plugin.TextCommand):
         if is_batch: return   ('modify' ,  url )
         else: self.modify_or_search_action(url); return
 
-    def get_selection(self, region) -> str:
+    def get_selection(self, region, sel_instead = False) -> str:
         """Returns selection. If selection contains no characters, expands it
-        until hitting delimiter chars.
+        until hitting delimiter chars. Selects the region if sel_instead
         """
         view = self.view
         start: int = region.begin()
         end: int = region.end()
 
         if start != end:
-            sel: str = self.view.substr(sublime.Region(start, end))
+            reg = sublime.Region(start, end)
+            sel: str = self.view.substr(reg)
+            if sel_instead:
+                sel_str = sel.strip()
+                reg_str = self.view.find(sel_str, start, flags=sublime.FindFlags.LITERAL)
+                view.sel().subtract(reg)
+                view.sel().add(reg_str)
+                return sel_str
             return sel.strip()
 
         # nothing is selected, so expand selection to nearest delimiters
@@ -404,6 +413,12 @@ class OpenUrlCommand(sublime_plugin.TextCommand):
                                 break
             if url_reg: #found url inside
                 sel = self.view.substr(url_reg)
+                if sel_instead:
+                    sel_str = sel.strip()
+                    reg_str = self.view.find(sel_str, start, flags=sublime.FindFlags.LITERAL)
+                    view.sel().subtract(region)
+                    view.sel().add(reg_str)
+                    return sel_str
                 return sel.strip()
 
         view_size: int = self.view.size()
@@ -449,7 +464,14 @@ class OpenUrlCommand(sublime_plugin.TextCommand):
                 if is_found:
                     break
             end += 1
-        sel = self.view.substr(sublime.Region(start, end))
+        reg = sublime.Region(start, end)
+        sel = self.view.substr(reg)
+        if sel_instead:
+            sel_str = sel.strip()
+            reg_str = self.view.find(sel_str, start, flags=sublime.FindFlags.LITERAL)
+            view.sel().subtract(reg)
+            view.sel().add(reg_str)
+            return sel_str
         return sel.strip()
 
     def file_path(self):

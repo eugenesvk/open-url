@@ -1,4 +1,6 @@
 [
 {"keys":["ctrl+u"], "command":"open_url","context":[{
   "key":"setting.open_url.enable_default_key_bindings","operator":"equal","operand":true}]  },
+{"keys":["ctrl+alt+u"], "command":"open_url","args":{"sel_instead":true},"context":[{
+  "key":"setting.open_url.enable_default_key_bindings","operator":"equal","operand":true}]  },
 ]

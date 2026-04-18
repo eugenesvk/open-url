@@ -6,7 +6,7 @@ import subprocess
 import threading
 import webbrowser
 from typing import TypedDict, cast
-from urllib.parse import quote, urlparse
+from urllib.parse import quote, unquote, urlparse, urlunparse
 
 import sublime  # type: ignore
 import sublime_plugin  # type: ignore
@@ -74,9 +74,10 @@ settings_keys = [
 
 def prepend_scheme(s: str) -> str:
     o = urlparse(s)
-    if not o.scheme:
-        s = "http://" + s
-    return s
+    scheme = o.scheme if o.scheme else 'http'
+    o_q = (scheme, o.netloc, quote(unquote(o.path)), o.params,  o.query, o.fragment)
+    # TODO: ↑ should params/querty/fragments be quoted?
+    return urlunparse(o_q)
 
 
 def remove_trailing_delimiters(url: str, trailing_delimiters: str) -> str:
